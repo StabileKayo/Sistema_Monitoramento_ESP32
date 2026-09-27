@@ -64,8 +64,22 @@ def processar_mensagem(protocolo_esperado, linha_bytes, conexao, origem=""):
         print(f"[{protocolo_esperado}{origem}] Erro ao gravar no MySQL: {erro}")        
 
 
+def escutar_udp():
+    conexao_db = conectar_banco()
+    servidor = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    servidor.bind((UDP_HOST, UDP_PORT))
+    print(f"[UDP] Escutando em {UDP_HOST}:{UDP_PORT}")
+
+    # UDP não tem conceito de "conexão": cada datagrama é uma mensagem completa e independente
+    # então basta receber e processar em loop
+    while True:
+        dados, endereco = servidor.recvfrom(1024)
+        processar_mensagem("UDP", dados, conexao_db, origem=f" {endereco}")
+
+
 def main():
     print("Gateway rodando. Pressione Ctrl+C para encerrar.")
+    escutar_udp()
 
 
 if __name__ == "__main__":
