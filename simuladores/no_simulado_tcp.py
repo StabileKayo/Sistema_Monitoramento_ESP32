@@ -69,10 +69,16 @@ def main():
         # adicionamos "\n" ao final de cada JSON, para o gateway saber onde 
         # uma mensagem termina e a proxima começa
         linha = (json.dumps(mensagem) + "\n").encode("utf-8")
-
-        sock.sendall(linha)
-        print(f"[{NO_ID}] Enviado: {mensagem}")
-
+        try:
+            sock.sendall(linha)
+            print(f"[{NO_ID}] Enviado: {mensagem}")
+        except (BrokenPipeError, ConnectionResetError, OSError) as erro:
+        # Gateway caiu ou a conexão foi fechada - fecha o socket morto e
+        # reconecta antes de tentar enviar de novo
+            print(f"[{NO_ID}] Conexão perdida ({erro}). Reconectando...")
+            sock.close()
+            sock = conectar()
+            
         time.sleep(INTERVALO_SEGUNDOS)
 
 
