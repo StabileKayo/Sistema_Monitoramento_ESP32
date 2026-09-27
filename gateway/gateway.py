@@ -1,3 +1,4 @@
+import json
 import socket
 import threading
 
@@ -46,6 +47,21 @@ def salvar_leitura(conexao, mensagem: dict):
     cursor.execute(sql, valores)
     conexao.commit()
     cursor.close()
+
+
+def processar_mensagem(protocolo_esperado, linha_bytes, conexao, origem=""):
+    # Faz o parse do JSON recebido e grava no banco, tratando erros sem derrubar o listener inteiro
+    # Um pacote inválido de um nó não pode travar o recebimento dos demais
+    try:
+        mensagem = json.loads(linha_bytes.decode("utf-8"))
+        salvar_leitura(conexao, mensagem)
+        print(f"[{protocolo_esperado}{origem}] Gravado: {mensagem}")
+    except json.JSONDecodeError:
+        # Pacote corrompido ou não-JSON: registra e segue em frente
+        print(f"[{protocolo_esperado}{origem}] Mensagem inválida (não era JSON): {linha_bytes!r}")
+    except mysql.connector.Error as erro:
+        # Falha no banco (conexão caiu, tabela errada, etc): registra sem derrubar o listener
+        print(f"[{protocolo_esperado}{origem}] Erro ao gravar no MySQL: {erro}")        
 
 
 def main():
